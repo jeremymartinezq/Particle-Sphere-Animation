@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Particle Sphere and Orbits</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #000;
+    }
+    canvas {
+      width: 100%;
+      height: 100vh;
+      display: block;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+    
+    h1 {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      color: white;
+      font-family: cursive, sans-serif;
+      font-size: 2rem;
+      z-index: 100;
+    }
+    
+    .icons {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 100;
+    }
+    
+    .icons img {
+      width: 30px;
+      height: 30px;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+<h1>Particle Sphere and Orbits</h1>
+<div class="icons">
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/css3/css3-original.svg" alt="CSS3">
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/html5/html5-original.svg" alt="HTML5">
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg" alt="JavaScript">
+</div>
+
+<script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.162.0/build/three.module.js",
+      "three/addons/controls/OrbitControls.js": "https://unpkg.com/three@0.162.0/examples/jsm/controls/OrbitControls.js"
+    }
+  }
+</script>
+
+<script type="module">
+  import * as THREE from 'three';
+  import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+  // Create scene and renderer
+  const scene = new THREE.Scene();
+  
+  const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera.position.z = 180;
+
+  const renderer = new THREE.WebGLRenderer({ 
+    antialias: true,
+    alpha: true 
+  });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x000000, 1);
+  document.body.appendChild(renderer.domElement);
+
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.05;
+  controls.rotateSpeed = 0.5;
+
+  // SIMPLIFIED APPROACH WITH THREE MAIN COMPONENTS
+  
+  // 1. SPHERE SURFACE - Using simple mesh with gradient material
+  const sphereGeo = new THREE.SphereGeometry(50, 64, 64);
+  const sphereMat = new THREE.MeshBasicMaterial({
+    color: 0x3311cc,
+    transparent: true,
+    opacity: 0.6
+  });
+  const sphereMesh = new THREE.Mesh(sphereGeo, sphereMat);
+  scene.add(sphereMesh);
+  
+  // 2. POINT PARTICLES - Create dense point distribution on sphere
+  const particleCount = 30000;
+  const particleGeo = new THREE.BufferGeometry();
+  const particlePositions = new Float32Array(particleCount * 3);
+  const particleColors = new Float32Array(particleCount * 3);
+  
+  for (let i = 0; i < particleCount; i++) {
+    // Create even distribution across sphere
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    const radius = 50 + (Math.random() * 0.5 - 0.25);
+    
+    particlePositions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
+    particlePositions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+    particlePositions[i * 3 + 2] = radius * Math.cos(phi);
+    
+    // Color gradient: purple at bottom, blue in middle, cyan at top
+    const y = particlePositions[i * 3 + 1];
+    const normalizedY = (y + 50) / 100; // Map -50 to 50 to 0 to 1
+    
+    let r, g, b;
+    if (normalizedY < 0.35) { // Bottom: purple
+      r = 0.6; 
+      g = 0.0;
+      b = 0.8;
+    } else if (normalizedY < 0.65) { // Middle: blue
+      r = 0.1 + (0.65 - normalizedY) * 1.5; // Fade red
+      g = (normalizedY - 0.35) * 0.7; // Increase green
+      b = 0.9;
+    } else { // Top: cyan
+      r = 0.0;
+      g = 0.6;
+      b = 0.9;
+    }
+    
+    particleColors[i * 3] = r;
+    particleColors[i * 3 + 1] = g;
+    particleColors[i * 3 + 2] = b;
+  }
+  
+  particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+  particleGeo.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
+  
+  const particleMat = new THREE.PointsMaterial({
+    size: 0.7,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.9,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  });
+  
+  const particles = new THREE.Points(particleGeo, particleMat);
+  scene.add(particles);
+  
+  // 3. ORBITS - Simplified ring particles
+  function createOrbit(radius, particleCount, color, size, thickness) {
+    const positions = [];
+    const colors = [];
+    
+    for (let i = 0; i < particleCount; i++) {
+      const angle = (i / particleCount) * Math.PI * 2;
+      const orbitRadius = radius + (Math.random() * thickness * 2 - thickness);
+      const x = orbitRadius * Math.cos(angle);
+      const y = orbitRadius * Math.sin(angle);
+      const z = (Math.random() - 0.5) * thickness;
+      
+      positions.push(x, y, z);
+      
+      // Create shimmer effect with slight color variation
+      const baseColor = new THREE.Color(color);
+      const brightnessFactor = 0.8 + Math.random() * 0.4;
+      baseColor.r *= brightnessFactor;
+      baseColor.g *= brightnessFactor;
+      baseColor.b *= brightnessFactor;
+      
+      colors.push(baseColor.r, baseColor.g, baseColor.b);
+    }
+    
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    
+    const material = new THREE.PointsMaterial({
+      size: size,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.8,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    
+    return new THREE.Points(geometry, material);
+  }
+  
+  // Create orbit rings with bright neon colors
+  const orbits = [];
+  
+  // First orbit - cyan
+  const orbit1 = createOrbit(70, 2000, 0x00ffff, 1.0, 3);
+  orbit1.rotation.x = Math.PI / 4;
+  orbit1.rotation.z = Math.PI / 8;
+  scene.add(orbit1);
+  orbits.push({ points: orbit1, speedY: 0.001, speedX: 0.0003, speedZ: 0.0002 });
+  
+  // Second orbit - lime green
+  const orbit2 = createOrbit(85, 2500, 0x39ff14, 0.8, 2);
+  orbit2.rotation.x = Math.PI / 3;
+  orbit2.rotation.y = Math.PI / 5;
+  scene.add(orbit2);
+  orbits.push({ points: orbit2, speedY: -0.0005, speedX: 0.0002, speedZ: -0.0001 });
+  
+  // Third orbit - magenta
+  const orbit3 = createOrbit(100, 3000, 0xff00ff, 0.7, 2.5);
+  orbit3.rotation.x = -Math.PI / 6;
+  orbit3.rotation.z = Math.PI / 10;
+  scene.add(orbit3);
+  orbits.push({ points: orbit3, speedY: 0.0003, speedX: -0.0002, speedZ: 0.0004 });
+  
+  // Ambient particles around the scene
+  const ambientCount = 2000;
+  const ambientGeo = new THREE.BufferGeometry();
+  const ambientPositions = new Float32Array(ambientCount * 3);
+  const ambientColors = new Float32Array(ambientCount * 3);
+  
+  for (let i = 0; i < ambientCount; i++) {
+    // Random position in a large sphere around the scene
+    const radius = 130 + Math.random() * 80;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    
+    ambientPositions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
+    ambientPositions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+    ambientPositions[i * 3 + 2] = radius * Math.cos(phi);
+    
+    // Random bright colors
+    const colors = [
+      [0, 1, 1],    // cyan
+      [1, 0, 1],    // magenta
+      [0.2, 1, 0.2], // green
+      [0, 0.5, 1]   // blue
+    ];
+    
+    const selectedColor = colors[Math.floor(Math.random() * colors.length)];
+    ambientColors[i * 3] = selectedColor[0];
+    ambientColors[i * 3 + 1] = selectedColor[1];
+    ambientColors[i * 3 + 2] = selectedColor[2];
+  }
+  
+  ambientGeo.setAttribute('position', new THREE.BufferAttribute(ambientPositions, 3));
+  ambientGeo.setAttribute('color', new THREE.BufferAttribute(ambientColors, 3));
+  
+  const ambientMat = new THREE.PointsMaterial({
+    size: 0.6,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.7,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  });
+  
+  const ambientParticles = new THREE.Points(ambientGeo, ambientMat);
+  scene.add(ambientParticles);
+
+  // Animate everything
+  function animate() {
+    requestAnimationFrame(animate);
+    
+    // Rotate sphere and particles slightly
+    sphereMesh.rotation.y += 0.001;
+    particles.rotation.y += 0.001;
+    
+    // Rotate orbits
+    orbits.forEach(orbit => {
+      orbit.points.rotation.y += orbit.speedY;
+      orbit.points.rotation.x += orbit.speedX;
+      orbit.points.rotation.z += orbit.speedZ;
+    });
+    
+    // Slowly rotate ambient particles
+    ambientParticles.rotation.y += 0.0001;
+    ambientParticles.rotation.x += 0.0002;
+    
+    controls.update();
+    renderer.render(scene, camera);
+  }
+
+  animate();
+
+  // Handle window resize
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+</script>
+
+</body>
+</html>
