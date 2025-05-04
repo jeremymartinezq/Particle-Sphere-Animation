@@ -2,7 +2,8 @@
 
 A 3D visualization of a colored particle sphere with orbiting rings, created using HTML, CSS, and JavaScript with Three.js.
 
-![Particle Sphere and Orbits](https://i.imgur.com/placeholder.jpg)
+![Screenshot 2025-05-04 164130](https://github.com/user-attachments/assets/5773e46b-59a0-4a5c-abaf-1b14dc3b23d5)
+
 
 ## Live Demo
 
